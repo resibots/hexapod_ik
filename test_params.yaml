@@ -1,0 +1,6 @@
+hexapod_ik:
+  chain_end: force_sensor_0
+  chain_start: base_link
+
+joint_state_publisher:
+  source_list: ["/hexapod_ik/joint_states"]
