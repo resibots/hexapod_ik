@@ -269,37 +269,23 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
     static std::vector<double> control_params = {{1, 0, 0.5,
         0, 0.25, 0.5,
         0, 0.5, 0.5,
-        0.25, 0.75, 0.5,
         1, 0, 0.5,
-        0.25, 0.25, 0.5,
+        0, 0.25, 0.5,
+        0, 0.5, 0.5,
         1, 0, 0.5,
-        0.25, 0.75, 0.5,
-        1, 0.5, 0.5,
-        0.25, 0.25, 0.5,
+        0, 0.25, 0.5,
+        0, 0.5, 0.5,
         1, 0, 0.5,
-        0.25, 0.75, 0.5,
-        0.5, 1, 0,
-        0.5, 0.25, 0.75,
-        0.5, 0.5, 1,
-        0, 0.5, 0.25,
-        0.75, 0.5, 0.5,
-        1, 0, 0.5}};
+        0, 0.25, 0.5,
+        0, 0.5, 0.5,
+        1, 0, 0.5,
+        0, 0.25, 0.5,
+        0, 0.5, 0.5,
+        1, 0, 0.5,
+        0, 0.25, 0.5,
+        0, 0.5, 0.5}};
 
     static hexapod_controller::HexapodControllerCartesian<> controller(control_params, {}, scaling);
-
-    // for (double t = 0.0; t <= 5.0; t += 0.1) {
-    //     // This is a vector of angles, leg by leg, where each leg is joint by joint
-    //     // That is to say the structure is in the form [[0, 1, 2], [0, 1, 2], ...] (6 times)
-    //     auto angles = controller.pos(t);
-    //
-    //     KDL::Frame foot;
-    //     for (size_t i = 0; i < 6; i++) {
-    //         // Should update HexapodControllerSimple to output proper angles
-    //         foot.p.x(-pos[i * 3]);
-    //         foot.p.y(pos[i * 3 + 1]);
-    //         foot.p.z(-pos[i * 3 + 2]);
-    //     }
-    // }
 
     // Vector of doubles representing the coordinates of each leg's tip at time t
     auto pos = controller.pos(t);
