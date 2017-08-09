@@ -285,7 +285,7 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
         0.75, 0.5, 0.5,
         1, 0, 0.5}};
 
-    static hexapod_controller::HexapodControllerCartesian controller(control_params, {}, scaling);
+    static hexapod_controller::HexapodControllerCartesian<> controller(control_params, {}, scaling);
 
     // for (double t = 0.0; t <= 5.0; t += 0.1) {
     //     // This is a vector of angles, leg by leg, where each leg is joint by joint
@@ -309,10 +309,11 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
     std::vector<KDL::Frame> feet;
     // std::vector<KDL::Vector> feetp;
     KDL::Frame foot;
-    for (size_t i = 0; i < 6; i++) {
-        foot.p.x(pos[i * 3]);
-        foot.p.y(pos[i * 3 + 1]);
-        foot.p.z(pos[i * 3 + 2]);
+    // iterate over the legs
+    for (size_t leg = 0; leg < 6; leg++) {
+        foot.p.x(pos[leg][0]);
+        foot.p.y(pos[leg][1]);
+        foot.p.z(pos[leg][2]);
         // foot = KDL::Frame(KDL::Vector(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
         feet.push_back(foot);
         // feetp.push_back(foot.p);
@@ -465,9 +466,9 @@ int main(int argc, char** argv)
         "leg_5_2_3"}};
 
     state.position = std::vector<double>(18, 0);
-    state.position.at(15) = 1.2;
-    state.position.at(16) = 1;
-    state.position.at(17) = -1.2;
+    // state.position.at(15) = 1.2;
+    // state.position.at(16) = 1;
+    // state.position.at(17) = -1.2;
 
     // state.position = generate_cartesian_traj(0);
 
@@ -527,48 +528,63 @@ int main(int argc, char** argv)
         ROS_DEBUG_STREAM("Elapsed time: " << elapsed.toSec() / 10.0);
         std::vector<KDL::Frame> frames = generate_cartesian_traj(elapsed.toSec());
 
-        // KDL::JntArray joint_angles(3);
-        // joint_angles(0) = 0;
-        // joint_angles(1) = 0;
-        // joint_angles(2) = 0;
-        // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
-        // KDL::Frame frame = neutral_pose(tracik_solver);
-        KDL::Frame frame = frames.at(0);
-        frame.p += neutral_pose(tracik_solver).p;
+        state.position = std::vector<double>(18, 0);
 
-        // Publsh target pose
-        geometry_msgs::PointStamped target_point_stamped;
-        target_point_stamped.point.x = frame.p.x();
-        target_point_stamped.point.y = frame.p.y();
-        target_point_stamped.point.z = frame.p.z();
-        target_point_stamped.header.seq = state.header.seq + 1;
-        target_point_stamped.header.stamp = ros::Time::now();
-        foot_target.publish(target_point_stamped);
+        // std::array<KDL::JntArray, 6> results;
+        std::vector<KDL::JntArray> results(6, KDL::JntArray(3));
+        bool ik_success = true;
 
-        KDL::JntArray result;
+        for (uint8_t leg = 0; leg < 6; ++leg) {
+            // KDL::JntArray joint_angles(3);
+            // joint_angles(0) = 0;
+            // joint_angles(1) = 0;
+            // joint_angles(2) = 0;
+            // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
+            // KDL::Frame frame = neutral_pose(tracik_solver);
 
-        // std::cout << "Nominal joint angles: " << nominals.at(0) << std::endl;
-        // std::cout << "Target position: " << frame.p << std::endl;
-        if (tracik_solver->CartToJnt(nominals.at(0), frame, result, bounds) < 0)
-            ROS_WARN_STREAM("Failed to solve inverse kinematics problem. Target frame was\n"
-                << frame << "\n and result is " << result);
-        else {
-            // std::cout << "Found a solution:" << std::endl;
-            // std::cout << "\tJoint coordinates: " << result << std::endl;
-            // std::cout << "\tRelated position:  "
-            //           << joint_to_cartesian(tracik_solver, result).p
-            //           << std::endl
-            // std::cout << std::endl;
+            KDL::Frame& frame = frames.at(leg);
+            frame.p += neutral_pose(tracik_solver).p;
+            KDL::JntArray& result = results.at(leg);
 
-            state.position = std::vector<double>(18, 0);
-            state.position.at(0) = result(0);
-            state.position.at(1) = result(1);
-            state.position.at(2) = result(2);
+            // // Publsh target pose
+            // geometry_msgs::PointStamped target_point_stamped;
+            // target_point_stamped.point.x = frame.p.x();
+            // target_point_stamped.point.y = frame.p.y();
+            // target_point_stamped.point.z = frame.p.z();
+            // target_point_stamped.header.seq = state.header.seq + 1;
+            // target_point_stamped.header.stamp = ros::Time::now();
+            // foot_target.publish(target_point_stamped);
+
+            // std::cout << "Nominal joint angles: " << nominals.at(0) << std::endl;
+            // std::cout << "Target position: " << frame.p << std::endl;
+            // if (tracik_solver->CartToJnt(nominals.at(leg), frame, result, bounds) < 0) {
+            if (tracik_solver->CartToJnt(result, frame, result, bounds) < 0) {
+                ROS_WARN_STREAM("Failed to solve inverse kinematics problem. Target frame was\n"
+                    << frame << "\n and result is " << result);
+                ik_success = false;
+                break;
+            }
+            else {
+                // std::cout << "Found a solution:" << std::endl;
+                // std::cout << "\tJoint coordinates: " << result << std::endl;
+                // std::cout << "\tRelated position:  "
+                //           << joint_to_cartesian(tracik_solver, result).p
+                //           << std::endl
+                // std::cout << std::endl;
+
+                // state.position = std::vector<double>(18, 0);
+                state.position.at(leg * 3) = result(0);
+                state.position.at(leg * 3 + 1) = result(1);
+                state.position.at(leg * 3 + 2) = result(2);
+
+                // trajectory_file << elapsed.toSec() << ", " << result(0) << ", " << result(1) << ", " << result(2) << ", " << frame.p.x() << ", " << frame.p.y() << ", " << frame.p.z() << std::endl;
+            }
+        }
+
+        if (ik_success) {
             state.header.seq++;
             state.header.stamp = ros::Time::now();
             joint_states.publish(state);
-
-            // trajectory_file << elapsed.toSec() << ", " << result(0) << ", " << result(1) << ", " << result(2) << ", " << frame.p.x() << ", " << frame.p.y() << ", " << frame.p.z() << std::endl;
         }
 
         ros::spinOnce();
