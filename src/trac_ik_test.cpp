@@ -290,23 +290,12 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
     // Vector of doubles representing the coordinates of each leg's tip at time t
     auto pos = controller.pos(t);
 
-    // Get the frame of each leg tip
-
+    // Convert the output of the controller to a vector of frames
     std::vector<KDL::Frame> feet;
-    // std::vector<KDL::Vector> feetp;
-    KDL::Frame foot;
-    // iterate over the legs
     for (size_t leg = 0; leg < 6; leg++) {
-        foot.p.x(pos[leg][0]);
-        foot.p.y(pos[leg][1]);
-        foot.p.z(pos[leg][2]);
-        // foot = KDL::Frame(KDL::Vector(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
-        feet.push_back(foot);
-        // feetp.push_back(foot.p);
+        feet.push_back(KDL::Frame(KDL::Vector(
+            pos[leg][0], pos[leg][1], pos[leg][2])));
     }
-
-    // std::cout << "Here are the feet !" << std::endl
-    //           << feetp << std::endl;
 
     return feet;
 }
@@ -424,11 +413,11 @@ int main(int argc, char** argv)
     else
         std::cout << "Failure !" << std::endl;
 
-    // Testing the trajectories with Rviz visualisation
-    // ------------------------------------------------
+    // Testing the trajectories with Rviz visualisation and cartesian generation
+    // -------------------------------------------------------------------------
+    ROS_INFO("Testing inverse kinematics for a trajectory");
 
     ros::Publisher joint_states = nh.advertise<sensor_msgs::JointState>("/joint_states", 1000, true);
-    ros::Publisher foot_target = nh.advertise<geometry_msgs::PointStamped>("foot_target", 1000, true);
 
     sensor_msgs::JointState state;
 
@@ -451,46 +440,10 @@ int main(int argc, char** argv)
         "leg_5_1_2",
         "leg_5_2_3"}};
 
+    // sensible initial values
     state.position = std::vector<double>(18, 0);
-    // state.position.at(15) = 1.2;
-    // state.position.at(16) = 1;
-    // state.position.at(17) = -1.2;
-
-    // state.position = generate_cartesian_traj(0);
-
     state.header.seq = 0;
     state.header.stamp = ros::Time::now();
-    // joint_states.publish(state);
-    // state.header.seq++;
-    // state.header.stamp = ros::Time::now();
-    // joint_states.publish(state);
-    // state.header.seq++;
-    // state.header.stamp = ros::Time::now();
-    // joint_states.publish(state);
-    // state.header.seq++;
-    // state.header.stamp = ros::Time::now();
-    // joint_states.publish(state);
-
-    // ros::Rate r(10); // 10 Hz loop frequency
-    // while (ros::ok()) {
-    //     state.header.seq++;
-    //     state.header.stamp = ros::Time::now();
-    //     joint_states.publish(state);
-    //     ros::spinOnce();
-    //     r.sleep();
-    // }
-
-    // ros::spin();
-
-    // Test trajectory generation in cartesian
-    // ---------------------------------------
-
-    std::cout
-        << std::endl
-        << "Testing inverse kinematics for a trajectory" << std::endl;
-
-    // zero-angle default joint angles for each leg
-    std::vector<KDL::JntArray> nominals(6, KDL::JntArray(3));
 
     // Set rotational bounds to max, so that the kinematics ignores the rotation
     // part of the target pose
@@ -499,51 +452,36 @@ int main(int argc, char** argv)
     tmp_bounds.rot.y(std::numeric_limits<float>::max());
     tmp_bounds.rot.z(std::numeric_limits<float>::max());
     const KDL::Twist bounds(tmp_bounds);
-    // std::cout << "Tolerances for position and rotation: " << bounds << std::endl;
+    ROS_DEBUG_STREAM("Tolerances for position and rotation: " << bounds);
 
-    // std::vector<KDL::Frame> frames = generate_cartesian_traj(5.7765465);
-
-    // std::ofstream trajectory_file("traj.csv");
-
+    // Counting time from start of the loop
     ros::Time beginning = ros::Time::now();
     ros::Duration elapsed;
+
     // Loop frequency set to 1Hz
     ros::Rate r(50);
+
     while (ros::ok()) {
         elapsed = ros::Time::now() - beginning;
-        ROS_DEBUG_STREAM("Elapsed time: " << elapsed.toSec() / 10.0);
+
+        // at this time, the leg's tips should move to these frames
         std::vector<KDL::Frame> frames = generate_cartesian_traj(elapsed.toSec());
 
-        state.position = std::vector<double>(18, 0);
-
-        // std::array<KDL::JntArray, 6> results;
+        // joint angles computed by inverse kinematics
+        // zero-angle default joint angles for each leg
         std::vector<KDL::JntArray> results(6, KDL::JntArray(3));
+        // false as soon as inverse kinematic computation failed for one leg
         bool ik_success = true;
 
         for (uint8_t leg = 0; leg < 6; ++leg) {
-            // KDL::JntArray joint_angles(3);
-            // joint_angles(0) = 0;
-            // joint_angles(1) = 0;
-            // joint_angles(2) = 0;
-            // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
-            // KDL::Frame frame = neutral_pose(tracik_solver);
 
             KDL::Frame& frame = frames.at(leg);
             frame.p += neutral_pose(tracik_solver).p;
             KDL::JntArray& result = results.at(leg);
 
-            // // Publsh target pose
-            // geometry_msgs::PointStamped target_point_stamped;
-            // target_point_stamped.point.x = frame.p.x();
-            // target_point_stamped.point.y = frame.p.y();
-            // target_point_stamped.point.z = frame.p.z();
-            // target_point_stamped.header.seq = state.header.seq + 1;
-            // target_point_stamped.header.stamp = ros::Time::now();
-            // foot_target.publish(target_point_stamped);
+            ROS_DEBUG_STREAM("Target position for leg " << (int)leg << ": " << frame.p);
 
-            // std::cout << "Nominal joint angles: " << nominals.at(0) << std::endl;
-            // std::cout << "Target position: " << frame.p << std::endl;
-            // if (tracik_solver->CartToJnt(nominals.at(leg), frame, result, bounds) < 0) {
+            // first reference to "result" is the nominal joint angles
             if (tracik_solver->CartToJnt(result, frame, result, bounds) < 0) {
                 ROS_WARN_STREAM("Failed to solve inverse kinematics problem. Target frame was\n"
                     << frame << "\n and result is " << result);
@@ -551,22 +489,16 @@ int main(int argc, char** argv)
                 break;
             }
             else {
-                // std::cout << "Found a solution:" << std::endl;
-                // std::cout << "\tJoint coordinates: " << result << std::endl;
-                // std::cout << "\tRelated position:  "
-                //           << joint_to_cartesian(tracik_solver, result).p
-                //           << std::endl
-                // std::cout << std::endl;
+                ROS_DEBUG_STREAM("Found a solution for leg "
+                    << (int)leg << " with joint values:" << result);
 
-                // state.position = std::vector<double>(18, 0);
                 state.position.at(leg * 3) = result(0);
                 state.position.at(leg * 3 + 1) = result(1);
                 state.position.at(leg * 3 + 2) = result(2);
-
-                // trajectory_file << elapsed.toSec() << ", " << result(0) << ", " << result(1) << ", " << result(2) << ", " << frame.p.x() << ", " << frame.p.y() << ", " << frame.p.z() << std::endl;
             }
         }
 
+        // if all the inverse kinematics worked, publish the pose
         if (ik_success) {
             state.header.seq++;
             state.header.stamp = ros::Time::now();
