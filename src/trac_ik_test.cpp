@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <sensor_msgs/JointState.h>
+#include <geometry_msgs/PointStamped.h>
 
 // Generate a trajectory
 #include <kdl/trajectory_composite.hpp>
@@ -83,19 +84,13 @@ std::ostream& operator<<(std::ostream& in, const std::vector<KDL::Vector>& vecto
     return in;
 }
 
-KDL::Frame joint_to_cartesian(std::string chain_start, std::string chain_end, std::string xml_string, KDL::JntArray joint_angles)
+KDL::Frame joint_to_cartesian(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver, KDL::JntArray joint_angles)
 {
-    double timeout = 0;
-    double eps = 1e-5;
-    // This constructor parses the URDF loaded in rosparm urdf_param into the
-    // needed KDL structures.  We then pull these out to compare against the KDL
-    // IK solver.
-    TRAC_IK::TRAC_IK tracik_solver(xml_string, chain_start, chain_end, timeout, eps);
 
     // Get the KDL chain from URDF
     // FIXME: we should not need to construct a TRAC_IK object for this
     KDL::Chain chain;
-    bool valid = tracik_solver.getKDLChain(chain);
+    bool valid = tracik_solver->getKDLChain(chain);
 
     // Set up KDL forward kinematics to create goal end effector pose
     KDL::ChainFkSolverPos_recursive fk_solver(chain); // Forward kin. solver
@@ -117,19 +112,12 @@ KDL::Frame joint_to_cartesian(std::string chain_start, std::string chain_end, st
 
     @return frame at the end of the chain
 **/
-KDL::Frame neutral_pose(const std::string& chain_start, const std::string& chain_end, const std::string& xml_string)
+KDL::Frame neutral_pose(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
 {
-    // This constructor parses the URDF loaded in rosparm urdf_param into the
-    // needed KDL structures.  We then pull these out to compare against the KDL
-    // IK solver.
-    double timeout = 0;
-    double eps = 1e-5;
-    TRAC_IK::TRAC_IK tracik_solver(xml_string, chain_start, chain_end, timeout, eps);
-
     // Get the KDL chain from URDF
     // FIXME: we should not need to construct a TRAC_IK object for this
     KDL::Chain chain;
-    bool valid = tracik_solver.getKDLChain(chain);
+    bool valid = tracik_solver->getKDLChain(chain);
 
     // Set up KDL forward kinematics to create goal end effector pose
     KDL::ChainFkSolverPos_recursive fk_solver(chain); // Forward kin. solver
@@ -146,14 +134,14 @@ KDL::Frame neutral_pose(const std::string& chain_start, const std::string& chain
     return frame;
 }
 
-bool test_fk(std::string chain_start, std::string chain_end, std::string xml_string)
+bool test_fk(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
 {
     KDL::JntArray joint_angles(3);
     joint_angles(0) = 0;
     joint_angles(1) = 0;
     joint_angles(2) = 0;
 
-    KDL::Frame frame = joint_to_cartesian(chain_start, chain_end, xml_string, joint_angles);
+    KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
 
     KDL::Vector point = frame.p;
     KDL::Vector end_effector_pose(-0.173711, 0.233132, -0.115);
@@ -271,13 +259,31 @@ void test_ik(double num_samples, std::string chain_start, std::string chain_end,
 
 std::vector<KDL::Frame> generate_cartesian_traj(const double t)
 {
-    static std::array<std::array<double, 3>, 6> scaling = {{{0.1, 0.1, 0.1},
-        {0.1, 0.1, 0.1},
-        {0.1, 0.1, 0.1},
-        {0.1, 0.1, 0.1},
-        {0.1, 0.1, 0.1},
-        {0.1, 0.1, 0.1}}};
-    static std::vector<double> control_params = {{1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0.5, 0.5, 0.25, 0.75, 0.5, 1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5, 1, 0.5, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5}};
+    static std::array<std::array<double, 3>, 6> scaling = {{{{0.02, 0.02, 0.02}},
+        {{0.02, 0.02, 0.02}},
+        {{0.02, 0.02, 0.02}},
+        {{0.02, 0.02, 0.02}},
+        {{0.02, 0.02, 0.02}},
+        {{0.02, 0.02, 0.02}}}};
+    // std::vector<double> control_params = {{1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0.5, 0.5, 0.25, 0.75, 0.5, 1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5, 1, 0.5, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5}};
+    static std::vector<double> control_params = {{1, 0, 0.5,
+        0, 0.25, 0.5,
+        0, 0.5, 0.5,
+        0.25, 0.75, 0.5,
+        1, 0, 0.5,
+        0.25, 0.25, 0.5,
+        1, 0, 0.5,
+        0.25, 0.75, 0.5,
+        1, 0.5, 0.5,
+        0.25, 0.25, 0.5,
+        1, 0, 0.5,
+        0.25, 0.75, 0.5,
+        0.5, 1, 0,
+        0.5, 0.25, 0.75,
+        0.5, 0.5, 1,
+        0, 0.5, 0.25,
+        0.75, 0.5, 0.5,
+        1, 0, 0.5}};
 
     static hexapod_controller::HexapodControllerCartesian controller(control_params, {}, scaling);
 
@@ -295,38 +301,34 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
     //     }
     // }
 
-    auto angles = controller.pos(t);
+    // Vector of doubles representing the coordinates of each leg's tip at time t
+    auto pos = controller.pos(t);
+
+    // Get the frame of each leg tip
 
     std::vector<KDL::Frame> feet;
-    std::vector<KDL::Vector> feetp;
+    // std::vector<KDL::Vector> feetp;
     KDL::Frame foot;
     for (size_t i = 0; i < 6; i++) {
-        // Should update HexapodControllerSimple to output proper angles
-        foot.p.x(-angles[i * 3]);
-        foot.p.y(angles[i * 3 + 1]);
-        foot.p.z(-angles[i * 3 + 2]);
+        foot.p.x(pos[i * 3]);
+        foot.p.y(pos[i * 3 + 1]);
+        foot.p.z(pos[i * 3 + 2]);
+        // foot = KDL::Frame(KDL::Vector(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
         feet.push_back(foot);
-        feetp.push_back(foot.p);
+        // feetp.push_back(foot.p);
     }
 
-    std::cout << "Here are the feet !" << std::endl
-              << feetp << std::endl;
+    // std::cout << "Here are the feet !" << std::endl
+    //           << feetp << std::endl;
 
     return feet;
 }
 
 std::vector<KDL::JntArray> generate_joint_traj(
-    std::string chain_start,
-    std::string chain_end,
-    std::string xml_string,
-    std::vector<KDL::Frame> frames,
-    std::vector<KDL::JntArray> nominals)
+    std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver,
+    const std::vector<KDL::Frame>& frames,
+    const std::vector<KDL::JntArray>& nominals)
 {
-    double timeout = 0;
-    double eps = 1e-5;
-    // This constructor parses the URDF loaded in rosparm urdf_param into the
-    // needed KDL structures.
-    TRAC_IK::TRAC_IK tracik_solver(xml_string, chain_start, chain_end, timeout, eps);
 
     // Set rotational bounds to max, so that the kinematics ignores the rotation
     // part of the target pose
@@ -336,26 +338,24 @@ std::vector<KDL::JntArray> generate_joint_traj(
     bounds.rot.z(std::numeric_limits<float>::max());
 
     assert(frames.size() == nominals.size());
-    auto nom_it = nominals.begin();
 
     std::vector<KDL::JntArray> results;
     KDL::JntArray result;
 
-    for (auto end_effector_pose : frames) {
-        std::cout << "Nominal joint angles: " << *nom_it << std::endl;
-        std::cout << "Target position: " << end_effector_pose.p << std::endl;
-        if (!tracik_solver.CartToJnt(*nom_it, end_effector_pose, result, bounds))
+    for (size_t i = 0; i < frames.size(); ++i) {
+        std::cout << "Nominal joint angles: " << nominals.at(i) << std::endl;
+        std::cout << "Target position: " << frames.at(i).p << std::endl;
+        if (!tracik_solver->CartToJnt(nominals.at(i), frames.at(i), result, bounds))
             std::cerr << "Failed to solve inverse kinematics problem" << std::endl;
         else
             results.push_back(result);
 
         std::cout << "Joint coordinates: " << result << std::endl;
         std::cout << "Related position:  "
-                  << joint_to_cartesian(chain_start, chain_end, xml_string, result).p
+                  << joint_to_cartesian(tracik_solver, result).p
                   << std::endl
                   << std::endl;
-        nom_it++;
-        break;
+        // break;
     }
 
     return results;
@@ -388,9 +388,16 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    // nh.param("timeout", timeout, 0.005);
+    nh.param("timeout", timeout, 0.005);
     nh.param("urdf_param", urdf_param, std::string("/robot_description"));
     nh.getParam("/robot_description", urdf_file);
+
+    // Initialization of trac_ik
+    // -------------------------
+    double eps = 1e-5;
+    // This constructor parses the URDF loaded in rosparm urdf_param into the
+    // needed KDL structures.
+    std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver = std::make_shared<TRAC_IK::TRAC_IK>(urdf_file, chain_start, chain_end, timeout, eps);
 
     // Test Zone
     // ---------
@@ -398,7 +405,7 @@ int main(int argc, char** argv)
     if (num_samples < 1)
         num_samples = 1;
 
-    test_ik(num_samples, chain_start, chain_end, timeout, urdf_file);
+    // test_ik(num_samples, chain_start, chain_end, timeout, urdf_file);
     // generate_cartesian_traj_kdl();
 
     // Convert from joint space to task/cartesian space
@@ -409,31 +416,32 @@ int main(int argc, char** argv)
     // joint_angles(1) = 0;
     // joint_angles(2) = 0;
     //
-    // KDL::Frame frame = joint_to_cartesian(chain_start, chain_end, urdf_file, joint_angles);
-    //
-    // KDL::Vector point = frame.p;
-    // std::cout << "Position of the end effector" << std::endl;
-    // std::cout << point.x() << ", " << point.y() << ", " << point.z() << std::endl;
+    // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
+    // std::cout << "Position of the end effector: " << frame.p << std::endl;
 
     // Test neutral_pose against joint_to_cartesian
     // --------------------------------------------
+
     // {
-    //     KDL::Frame end_frame = neutral_pose(chain_start, chain_end, urdf_file);
-    //     std::cout << "Same frames : " << (frame == end_frame) << std::endl;
-    //     std::cout << "Neutral frame : " << end_frame.p << std::endl;
+    //     KDL::Frame neutral_frame = neutral_pose(tracik_solver);
+    //     std::cout << "Same frames : " << (frame == neutral_frame ? "yes" : "no") << std::endl;
+    //     std::cout << "Neutral frame : " << neutral_frame.p << std::endl;
     // }
+
     // Test the conversion from joint space to task/cartesian space
     // ------------------------------------------------------------
 
-    // if (test_fk(chain_start, chain_end, urdf_file))
-    //     std::cout << "Success !" << std::endl;
-    // else
-    //     std::cout << "Failure !" << std::endl;
+    std::cout << "Testing tracik solver" << std::endl;
+    if (test_fk(tracik_solver))
+        std::cout << "Success !" << std::endl;
+    else
+        std::cout << "Failure !" << std::endl;
 
     // Testing the trajectories with Rviz visualisation
     // ------------------------------------------------
 
-    /**ros::Publisher joint_states = nh.advertise<sensor_msgs::JointState>("joint_states", 1000, true);
+    ros::Publisher joint_states = nh.advertise<sensor_msgs::JointState>("/joint_states", 1000, true);
+    ros::Publisher foot_target = nh.advertise<geometry_msgs::PointStamped>("foot_target", 1000, true);
 
     sensor_msgs::JointState state;
 
@@ -465,7 +473,7 @@ int main(int argc, char** argv)
 
     state.header.seq = 0;
     state.header.stamp = ros::Time::now();
-    joint_states.publish(state);
+    // joint_states.publish(state);
     // state.header.seq++;
     // state.header.stamp = ros::Time::now();
     // joint_states.publish(state);
@@ -485,17 +493,90 @@ int main(int argc, char** argv)
     //     r.sleep();
     // }
 
-    ros::spin();**/
+    // ros::spin();
+
+    // Test trajectory generation in cartesian
+    // ---------------------------------------
+
+    std::cout
+        << std::endl
+        << "Testing inverse kinematics for a trajectory" << std::endl;
+
+    // zero-angle default joint angles for each leg
+    std::vector<KDL::JntArray> nominals(6, KDL::JntArray(3));
+
+    // Set rotational bounds to max, so that the kinematics ignores the rotation
+    // part of the target pose
+    KDL::Twist tmp_bounds = KDL::Twist::Zero();
+    tmp_bounds.rot.x(std::numeric_limits<float>::max());
+    tmp_bounds.rot.y(std::numeric_limits<float>::max());
+    tmp_bounds.rot.z(std::numeric_limits<float>::max());
+    const KDL::Twist bounds(tmp_bounds);
+    // std::cout << "Tolerances for position and rotation: " << bounds << std::endl;
 
     // std::vector<KDL::Frame> frames = generate_cartesian_traj(5.7765465);
-    //
-    // // zero-angle default joint angles for each leg
-    // std::vector<KDL::JntArray> nominals(6, KDL::JntArray(3));
-    //
+
+    // std::ofstream trajectory_file("traj.csv");
+
+    ros::Time beginning = ros::Time::now();
+    ros::Duration elapsed;
+    // Loop frequency set to 1Hz
+    ros::Rate r(50);
+    while (ros::ok()) {
+        elapsed = ros::Time::now() - beginning;
+        ROS_DEBUG_STREAM("Elapsed time: " << elapsed.toSec() / 10.0);
+        std::vector<KDL::Frame> frames = generate_cartesian_traj(elapsed.toSec());
+
+        // KDL::JntArray joint_angles(3);
+        // joint_angles(0) = 0;
+        // joint_angles(1) = 0;
+        // joint_angles(2) = 0;
+        // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
+        // KDL::Frame frame = neutral_pose(tracik_solver);
+        KDL::Frame frame = frames.at(0);
+        frame.p += neutral_pose(tracik_solver).p;
+
+        // Publsh target pose
+        geometry_msgs::PointStamped target_point_stamped;
+        target_point_stamped.point.x = frame.p.x();
+        target_point_stamped.point.y = frame.p.y();
+        target_point_stamped.point.z = frame.p.z();
+        target_point_stamped.header.seq = state.header.seq + 1;
+        target_point_stamped.header.stamp = ros::Time::now();
+        foot_target.publish(target_point_stamped);
+
+        KDL::JntArray result;
+
+        // std::cout << "Nominal joint angles: " << nominals.at(0) << std::endl;
+        // std::cout << "Target position: " << frame.p << std::endl;
+        if (tracik_solver->CartToJnt(nominals.at(0), frame, result, bounds) < 0)
+            ROS_WARN_STREAM("Failed to solve inverse kinematics problem. Target frame was\n"
+                << frame << "\n and result is " << result);
+        else {
+            // std::cout << "Found a solution:" << std::endl;
+            // std::cout << "\tJoint coordinates: " << result << std::endl;
+            // std::cout << "\tRelated position:  "
+            //           << joint_to_cartesian(tracik_solver, result).p
+            //           << std::endl
+            // std::cout << std::endl;
+
+            state.position = std::vector<double>(18, 0);
+            state.position.at(0) = result(0);
+            state.position.at(1) = result(1);
+            state.position.at(2) = result(2);
+            state.header.seq++;
+            state.header.stamp = ros::Time::now();
+            joint_states.publish(state);
+
+            // trajectory_file << elapsed.toSec() << ", " << result(0) << ", " << result(1) << ", " << result(2) << ", " << frame.p.x() << ", " << frame.p.y() << ", " << frame.p.z() << std::endl;
+        }
+
+        ros::spinOnce();
+        r.sleep();
+    }
+
     // std::vector<KDL::JntArray> angles = generate_joint_traj(
-    //     chain_start,
-    //     chain_end,
-    //     urdf_file,
+    //     tracik_solver,
     //     frames,
     //     nominals);
 
