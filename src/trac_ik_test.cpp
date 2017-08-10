@@ -106,9 +106,7 @@ KDL::Frame joint_to_cartesian(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver, K
 
 /** Get frame the end of a chain when all joints are at zero angle.
 
-    @param chain_start name of the URDF rame for the start of the kinematic chain
-    @param chain_end name of the end frame
-    @param xml_string URDF file as a string
+    @param tracik_solver shared pointer to inverse kinematics solver
 
     @return frame at the end of the chain
 **/
@@ -118,20 +116,21 @@ KDL::Frame neutral_pose(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
     // FIXME: we should not need to construct a TRAC_IK object for this
     KDL::Chain chain;
     bool valid = tracik_solver->getKDLChain(chain);
-
-    // Set up KDL forward kinematics to create goal end effector pose
-    KDL::ChainFkSolverPos_recursive fk_solver(chain); // Forward kin. solver
-
+    //
+    // // Set up KDL forward kinematics to create goal end effector pose
+    // KDL::ChainFkSolverPos_recursive fk_solver(chain); // Forward kin. solver
+    //
     // Set joint angles to zero
     KDL::JntArray joint_angles(chain.getNrOfJoints()); // set to zero at construction
-
-    KDL::Frame frame;
-
-    int status = fk_solver.JntToCart(joint_angles, frame);
-    if (status < 0) {
-        ROS_ERROR_STREAM("Something went bad with the forward kinematics.");
-    }
-    return frame;
+    //
+    // KDL::Frame frame;
+    //
+    // int status = fk_solver.JntToCart(joint_angles, frame);
+    // if (status < 0) {
+    //     ROS_ERROR_STREAM("Something went bad with the forward kinematics.");
+    // }
+    // return frame;
+    return joint_to_cartesian(tracik_solver, joint_angles);
 }
 
 bool test_fk(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
