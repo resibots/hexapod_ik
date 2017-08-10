@@ -1,5 +1,5 @@
 hexapod_ik:
-  chain_end: force_sensor_0
+  chain_end: force_sensor_
   chain_start: base_link
 
 joint_state_publisher:

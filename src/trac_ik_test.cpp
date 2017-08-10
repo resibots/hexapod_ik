@@ -50,6 +50,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // for round()
 #include <cmath>
 
+// for stringstream
+#include <sstream>
+
 double fRand(double min, double max)
 {
     double f = (double)rand() / RAND_MAX;
@@ -372,7 +375,14 @@ int main(int argc, char** argv)
     double eps = 1e-5;
     // This constructor parses the URDF loaded in rosparm urdf_param into the
     // needed KDL structures.
-    std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver = std::make_shared<TRAC_IK::TRAC_IK>(urdf_file, chain_start, chain_end, timeout, eps);
+    std::array<std::shared_ptr<TRAC_IK::TRAC_IK>, 6> tracik_solvers;
+    for (size_t i = 0; i < 6; ++i) {
+        std::stringstream chain_end_full;
+        chain_end_full << chain_end << (int)i;
+        ROS_DEBUG_STREAM("Chain end: " << chain_end_full.str());
+        tracik_solvers[i] = std::make_shared<TRAC_IK::TRAC_IK>(
+            urdf_file, chain_start, chain_end_full.str(), timeout, eps);
+    }
 
     // Test Zone
     // ---------
@@ -391,14 +401,14 @@ int main(int argc, char** argv)
     // joint_angles(1) = 0;
     // joint_angles(2) = 0;
     //
-    // KDL::Frame frame = joint_to_cartesian(tracik_solver, joint_angles);
+    // KDL::Frame frame = joint_to_cartesian(tracik_solvers[0], joint_angles);
     // std::cout << "Position of the end effector: " << frame.p << std::endl;
 
     // Test neutral_pose against joint_to_cartesian
     // --------------------------------------------
 
     // {
-    //     KDL::Frame neutral_frame = neutral_pose(tracik_solver);
+    //     KDL::Frame neutral_frame = neutral_pose(tracik_solvers[0]);
     //     std::cout << "Same frames : " << (frame == neutral_frame ? "yes" : "no") << std::endl;
     //     std::cout << "Neutral frame : " << neutral_frame.p << std::endl;
     // }
@@ -407,7 +417,7 @@ int main(int argc, char** argv)
     // ------------------------------------------------------------
 
     std::cout << "Testing tracik solver" << std::endl;
-    if (test_fk(tracik_solver))
+    if (test_fk(tracik_solvers[0]))
         std::cout << "Success !" << std::endl;
     else
         std::cout << "Failure !" << std::endl;
@@ -475,21 +485,26 @@ int main(int argc, char** argv)
         for (uint8_t leg = 0; leg < 6; ++leg) {
 
             KDL::Frame& frame = frames.at(leg);
-            frame.p += neutral_pose(tracik_solver).p;
+            KDL::JntArray joint_angles(3);
+            joint_angles(1) = 0.2;
+            joint_angles(2) = 0.4;
+            frame.p += joint_to_cartesian(tracik_solvers[leg], joint_angles).p;
+            // frame.p += neutral_pose(tracik_solvers[leg]).p;
             KDL::JntArray& result = results.at(leg);
 
-            ROS_DEBUG_STREAM("Target position for leg " << (int)leg << ": " << frame.p);
+            // ROS_DEBUG_STREAM("Target position for leg " << (int)leg << ": " << frame.p);
 
             // first reference to "result" is the nominal joint angles
-            if (tracik_solver->CartToJnt(result, frame, result, bounds) < 0) {
-                ROS_WARN_STREAM("Failed to solve inverse kinematics problem. Target frame was\n"
-                    << frame << "\n and result is " << result);
+            if (tracik_solvers[leg]->CartToJnt(result, frame, result, bounds) < 0) {
+                ROS_WARN_STREAM("Failed to solve inverse kinematics problem for leg "
+                    << (int)leg << ". Target frame was\n"
+                    << frame << "\nand result is " << result);
                 ik_success = false;
                 break;
             }
             else {
-                ROS_DEBUG_STREAM("Found a solution for leg "
-                    << (int)leg << " with joint values:" << result);
+                // ROS_DEBUG_STREAM("Found a solution for leg "
+                //     << (int)leg << " with joint values:" << result);
 
                 state.position.at(leg * 3) = result(0);
                 state.position.at(leg * 3 + 1) = result(1);
@@ -503,13 +518,15 @@ int main(int argc, char** argv)
             state.header.stamp = ros::Time::now();
             joint_states.publish(state);
         }
+        // else
+        //     ros::Duration(3).sleep();
 
         ros::spinOnce();
         r.sleep();
     }
 
     // std::vector<KDL::JntArray> angles = generate_joint_traj(
-    //     tracik_solver,
+    //     tracik_solvers[0],
     //     frames,
     //     nominals);
 
