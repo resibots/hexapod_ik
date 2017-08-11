@@ -23,6 +23,7 @@ catkin_package(
   DEPENDS
     Boost
     orocos_kdl
+  LIBRARIES multipod_ik
 )
 
 include_directories(
@@ -40,18 +41,35 @@ target_link_libraries(hexapod_ik
   ${orocos_kdl_LIBRARIES}
 )
 
-add_executable(multipod_ik src/multipod_ik_test.cpp)
-target_link_libraries(multipod_ik
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${orocos_kdl_LIBRARIES}
-)
-
 install(TARGETS hexapod_ik
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+add_executable(multipod_test src/multipod_ik_test.cpp)
+target_link_libraries(multipod_test
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${orocos_kdl_LIBRARIES}
+)
+
+add_library(multipod_ik src/multipod_ik.cpp)
+target_link_libraries(multipod_ik
+  ${catkin_LIBRARIES}
+  ${orocos_kdl_LIBRARIES}
+  ${trac_ik_LIBRARIES}
+)
+add_dependencies(multipod_ik ${catkin_EXPORTED_TARGETS})
+
+install(TARGETS multipod_ik
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
