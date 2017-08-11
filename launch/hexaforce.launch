@@ -2,15 +2,15 @@
 <launch>
   <arg name="num_samples" default="1000" />
   <arg name="chain_start" default="base_link" />
-  <arg name="chain_end" default="force_sensor_0" />
-  <arg name="timeout" default="0.005" />
+  <arg name="chain_end" default="force_sensor_" />
+  <arg name="timeout" default="0.015" />
 
   <!-- load URDF of Hexaforce -->
-  <param name="robot_description"
-    command="$(find xacro)/xacro.py $(find hexapod_description)/urdf/hexaforce.xacro" />
+  <!-- <param name="robot_description"
+    command="$(find xacro)/xacro.py $(find hexapod_description)/urdf/hexaforce.xacro" /> -->
 
 
-  <node name="trac_ik_tests" pkg="trac_ik_examples" type="ik_tests" output="screen">
+  <node name="hexapod_ik" pkg="hexapod_ik" type="multipod_ik" output="screen">
     <param name="num_samples" value="$(arg num_samples)"/>
     <param name="chain_start" value="$(arg chain_start)"/>
     <param name="chain_end" value="$(arg chain_end)"/>
