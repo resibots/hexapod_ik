@@ -373,13 +373,13 @@ int main(int argc, char** argv)
     // Initialization of trac_ik
     // -------------------------
     double eps = 1e-5;
-    // This constructor parses the URDF loaded in rosparm urdf_param into the
-    // needed KDL structures.
     std::array<std::shared_ptr<TRAC_IK::TRAC_IK>, 6> tracik_solvers;
     for (size_t i = 0; i < 6; ++i) {
         std::stringstream chain_end_full;
         chain_end_full << chain_end << (int)i;
         ROS_DEBUG_STREAM("Chain end: " << chain_end_full.str());
+        // This constructor parses the URDF loaded in rosparm urdf_param into the
+        // needed KDL structures.
         tracik_solvers[i] = std::make_shared<TRAC_IK::TRAC_IK>(
             urdf_file, chain_start, chain_end_full.str(), timeout, eps);
     }
