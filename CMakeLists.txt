@@ -40,6 +40,13 @@ target_link_libraries(hexapod_ik
   ${orocos_kdl_LIBRARIES}
 )
 
+add_executable(multipod_ik src/multipod_ik_test.cpp)
+target_link_libraries(multipod_ik
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${orocos_kdl_LIBRARIES}
+)
+
 install(TARGETS hexapod_ik
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

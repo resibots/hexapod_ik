@@ -41,18 +41,26 @@ std::array<int, NLegs> cartesian_to_joint(
     const std::array<KDL::JntArray, NLegs>& q_init,
     const std::array<KDL::Frame, NLegs>& frame,
     std::array<KDL::JntArray, NLegs>& q_out,
-    const KDL::Twist bounds,
     bool stop_on_failure)
 {
     std::array<int, NLegs> status;
 
     for (size_t leg = 0; leg < NLegs; ++leg) {
-        status[leg] = tracik_solvers[leg]->CartToJnt(q_init[leg], frame[leg], q_out[leg], bounds);
+        status[leg] = tracik_solvers[leg]->CartToJnt(q_init[leg], frame[leg], q_out[leg], _bounds);
         if (stop_on_failure && status[leg] < 0)
             break;
     }
 
     return status;
+}
+
+int cartesian_to_joint(
+    size_t leg,
+    const KDL::JntArray& q_init,
+    const KDL::Frame& frame,
+    KDL::JntArray& q_out)
+{
+    return tracik_solvers[leg]->CartToJnt(q_init, frame, q_out, _bounds);
 }
 
 std::array<int, NLegs> joint_to_cartesian(
@@ -69,12 +77,26 @@ std::array<int, NLegs> joint_to_cartesian(
 
     // Compute the pose of each chain
     for (size_t leg = 0; leg < NLegs; ++leg) {
-        status[leg] = fk_solver[leg].JntToCart(q[leg], frame[leg]);
+        status[leg] = fk_solver[leg].JntToCart(q[leg], frames_out[leg]);
         if (stop_on_failure && status[leg] < 0)
             break;
     }
 
     return status;
+}
+
+int joint_to_cartesian(
+    size_t leg,
+    const KDL::JntArray& q,
+    KDL::Frame& frame_out)
+{
+    // Build the KDL forward kinematics models
+    bool initialized = make_fk_solvers();
+    if (!initialized)
+        return -1;
+
+    // Compute the pose for the leg
+    return fk_solver[leg].JntToCart(q, frame_out);
 }
 
 std::array<int, NLegs> neutral_poses(
@@ -91,8 +113,6 @@ std::array<int, NLegs> neutral_poses(
 
     return joint_to_cartesian(q frames, stop_on_failure);
 }
-
-const TRAC_IK::TRAC_IK& MultipodInverseKinematics::trak_ik_solver(size_t leg) const;
 
 bool make_fk_solvers()
 {
