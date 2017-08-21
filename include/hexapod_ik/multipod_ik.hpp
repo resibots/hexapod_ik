@@ -24,7 +24,12 @@ namespace multipod_ik {
         MultipodInverseKinematics(const MultipodInverseKinematics&) = delete;
         MultipodInverseKinematics& operator=(MultipodInverseKinematics&) = delete;
 
-        MultipodInverseKinematics(std::string chain_start, std::array<std::string, NLegs> chain_ends, std::string urdf, double timeout, double eps)
+        MultipodInverseKinematics(
+            std::string chain_start,
+            std::array<std::string, NLegs> chain_ends,
+            std::string urdf,
+            double timeout,
+            double eps)
         {
             init(chain_start, chain_ends, urdf, timeout, eps);
 
