@@ -36,6 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ros/console.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/PointStamped.h>
+// Publish to transformation
+#include <tf/transform_broadcaster.h>
 
 // Generate a trajectory
 #include <kdl/trajectory_composite.hpp>
@@ -163,6 +165,10 @@ int main(int argc, char** argv)
     multipod_ik::MultipodInverseKinematics<nLegs> hexapod_ik(
         chain_start, chain_ends, urdf_file, timeout, eps);
 
+    // Initialization of TF transform publicher
+    // ----------------------------------------
+    tf::TransformBroadcaster tf_broadcaster;
+
     // Testing the trajectories with Rviz visualisation and cartesian generation
     // -------------------------------------------------------------------------
     ROS_INFO("Testing inverse kinematics for a trajectory");
@@ -224,7 +230,29 @@ int main(int argc, char** argv)
             KDL::Frame reference_pose;
             hexapod_ik.joint_to_cartesian(leg, joint_angles, reference_pose);
             frame.p += reference_pose.p;
-            // frame.p += neutral_pose(tracik_solvers[leg]).p;
+            // KDL::Frame neutral_pose;
+            // hexapod_ik.neutral_pose(leg, neutral_pose);
+            // frame.p = neutral_pose.p;
+
+            // Make a name for a frame
+            std::stringstream chain_end_goal;
+            chain_end_goal << chain_end << (int)leg << "_goal";
+
+            // Publish the target frame in TF
+            tf::Transform transform;
+            transform.setOrigin(tf::Vector3(
+                frame.p.x(), frame.p.y(), frame.p.z()));
+            double x, y, z, w;
+            frame.M.GetQuaternion(x, y, z, w);
+            tf::Quaternion q(x, y, z, w);
+            transform.setRotation(q);
+            tf_broadcaster.sendTransform(
+                tf::StampedTransform(
+                    transform,
+                    ros::Time::now(),
+                    chain_start,
+                    chain_end_goal.str()));
+
             KDL::JntArray& result = results.at(leg);
 
             // ROS_DEBUG_STREAM("Target position for leg " << (int)leg << ": " << frame.p);
