@@ -127,6 +127,8 @@ int main(int argc, char** argv)
     //     ros::console::notifyLoggerLevelsChanged();
     // }
 
+    static constexpr uint8_t nLegs = 6;
+
     int num_samples;
     double timeout;
     std::string chain_start, chain_end, urdf_param, urdf_file;
@@ -151,14 +153,15 @@ int main(int argc, char** argv)
     // -------------------------
     double eps = 1e-5;
 
-    std::array<std::string, 6> chain_ends;
-    for (size_t i = 0; i < 6; ++i) {
+    std::array<std::string, nLegs> chain_ends;
+    for (size_t i = 0; i < nLegs; ++i) {
         std::stringstream chain_end_full;
         chain_end_full << chain_end << (int)i;
         chain_ends[i] = chain_end_full.str();
     }
 
-    multipod_ik::MultipodInverseKinematics<6> hexapod_ik(chain_start, chain_ends, urdf_file, timeout, eps);
+    multipod_ik::MultipodInverseKinematics<nLegs> hexapod_ik(
+        chain_start, chain_ends, urdf_file, timeout, eps);
 
     // Testing the trajectories with Rviz visualisation and cartesian generation
     // -------------------------------------------------------------------------
@@ -211,7 +214,7 @@ int main(int argc, char** argv)
         // false as soon as inverse kinematic computation failed for one leg
         bool ik_success = true;
 
-        for (uint8_t leg = 0; leg < 6; ++leg) {
+        for (uint8_t leg = 0; leg < nLegs; ++leg) {
 
             KDL::Frame& frame = frames.at(leg);
 
