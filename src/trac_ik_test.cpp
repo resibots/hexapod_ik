@@ -419,8 +419,10 @@ int main(int argc, char** argv)
     std::cout << "Testing tracik solver" << std::endl;
     if (test_fk(tracik_solvers[0]))
         std::cout << "Success !" << std::endl;
-    else
+    else {
         std::cout << "Failure !" << std::endl;
+        return -1;
+    }
 
     // Testing the trajectories with Rviz visualisation and cartesian generation
     // -------------------------------------------------------------------------
