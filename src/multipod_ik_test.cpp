@@ -195,6 +195,10 @@ int main(int argc, char** argv)
     state.header.seq = 0;
     state.header.stamp = ros::Time::now();
 
+    // joint angles computed by inverse kinematics
+    // zero-angle default joint angles for each leg
+    std::vector<KDL::JntArray> results(nLegs, KDL::JntArray(3));
+
     // Loop frequency
     ros::Rate r(50); // Hz
 
@@ -207,10 +211,6 @@ int main(int argc, char** argv)
 
         // at this time, the leg's tips should move to these frames
         std::vector<KDL::Frame> frames = generate_cartesian_traj(elapsed.toSec());
-
-        // joint angles computed by inverse kinematics
-        // zero-angle default joint angles for each leg
-        std::vector<KDL::JntArray> results(6, KDL::JntArray(3));
         // false as soon as inverse kinematic computation failed for one leg
         bool ik_success = true;
 
