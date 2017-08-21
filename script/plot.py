@@ -9,6 +9,7 @@ df = pd.read_csv(
     sep=", ",
     header=None,
     names=["time", "a", "b", "c", "x", "y", "z"],
+    usecols=[0, 1, 2, 3, 4, 5, 6],
     index_col="time",
     engine='python'
 )
