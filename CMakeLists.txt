@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(catkin REQUIRED
   COMPONENTS
     trac_ik_lib
+    tf
 )
 
 find_package(Boost REQUIRED COMPONENTS date_time)
@@ -20,10 +21,12 @@ find_package(HexapodController REQUIRED) # COMPONENTS hexapod_controller_simple)
 catkin_package(
   CATKIN_DEPENDS
     trac_ik_lib
+    tf
   DEPENDS
     Boost
     orocos_kdl
-  LIBRARIES multipod_ik
+  INCLUDE_DIRS
+    include
 )
 
 include_directories(
