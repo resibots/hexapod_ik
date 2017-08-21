@@ -134,6 +134,19 @@ namespace multipod_ik {
             return joint_to_cartesian(q, frames_out, stop_on_failure);
         }
 
+        int neutral_pose(
+            size_t leg,
+            KDL::Frame& frame_out)
+        {
+            // ut all joints in neutral pose, i.e., joint value 0
+            KDL::JntArray q(3);
+            q(0) = 0;
+            q(1) = 0;
+            q(2) = 0;
+
+            return joint_to_cartesian(leg, q, frame_out);
+        }
+
     protected:
         bool make_fk_solvers()
         {
