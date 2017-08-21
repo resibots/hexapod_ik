@@ -2,5 +2,11 @@ hexapod_ik:
   chain_end: force_sensor_
   chain_start: base_link
 
+hexapod_driver:
+  chain_end: force_sensor_
+  chain_start: base_link
+  odom_enable: false
+  mocap_odom_enable: false
+
 joint_state_publisher:
   source_list: ["/hexapod_ik/joint_states"]
