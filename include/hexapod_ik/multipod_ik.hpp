@@ -24,6 +24,19 @@ namespace multipod_ik {
         MultipodInverseKinematics(const MultipodInverseKinematics&) = delete;
         MultipodInverseKinematics& operator=(MultipodInverseKinematics&) = delete;
 
+        /** Main constructor of MultipodInverseKinematics.
+
+            This method will instanciate one inverse kinematic solver per leg
+            and make them all work only in position (no orientation).
+
+            @param urdf string of the urdf file modeling the multipod
+            @param chain_start frame of the model used as the reference
+            @param chain_ends one string per leg, naming the frame at the
+                extremity of each leg
+            @param timeout the amout of time allowed for the inverse kinematics
+                to run
+            @param eps see the documentation of Track_IK
+        **/
         MultipodInverseKinematics(
             std::string chain_start,
             std::array<std::string, NLegs> chain_ends,
@@ -46,9 +59,18 @@ namespace multipod_ik {
             _bounds.rot.y(std::numeric_limits<float>::max());
             _bounds.rot.z(std::numeric_limits<float>::max());
         }
-        // ~MultipodInverseKinematics();
 
+        /** Get joint angles from end-effector pose.
 
+            @param q_init joint angles used to initialise the inverse kinematics
+            @param frame target poses
+            @param q_out resulting joint angles as found by inverse kinematics
+            @param stop_on_failure if true, the function will return as soon as
+                the inverse kinematic computation fails for one leg (we walk
+                through them in ascending leg number).
+
+            @return status of the computation of each leg; failed if < 0
+        **/
         std::array<int, NLegs> cartesian_to_joint(
             const std::array<KDL::JntArray, NLegs>& q_init,
             const std::array<KDL::Frame, NLegs>& frame,
@@ -66,6 +88,17 @@ namespace multipod_ik {
             return status;
         }
 
+        /** Get joint angles from end-effector pose.
+
+            @see cartesian_to_joint(const std::array<KDL::JntArray, NLegs>& q_init,
+                const std::array<KDL::Frame, NLegs>& frame,
+                std::array<KDL::JntArray, NLegs>& q_out, bool stop_on_failure)
+                whereas this method computes for a single leg
+
+            @param leg id of the leg
+
+            @return status of the computation; failed if < 0
+        **/
         int cartesian_to_joint(
             size_t leg,
             const KDL::JntArray& q_init,
@@ -75,6 +108,16 @@ namespace multipod_ik {
             return _tracik_solvers[leg]->CartToJnt(q_init, frame, q_out, _bounds);
         }
 
+        /** Compute leg tip poses from joint angles.
+
+            @param q joint angles for the legs
+            @param frames_out computed poses of each leg
+            @param stop_on_failure if true, the function will return as soon as
+                the inverse kinematic computation fails for one leg (we walk
+                through them in ascending leg number).
+
+            @return status of the computation of each leg; failed if < 0
+        **/
         std::array<int, NLegs> joint_to_cartesian(
             const std::array<KDL::JntArray, NLegs>& q,
             std::array<KDL::Frame, NLegs>& frames_out,
@@ -97,6 +140,18 @@ namespace multipod_ik {
             return status;
         }
 
+        /** Compute leg tip pose from joint angles.
+
+            @see joint_to_cartesian( const std::array<KDL::JntArray, NLegs>& q,
+                std::array<KDL::Frame, NLegs>& frames_out, bool stop_on_failure);
+                this one works for a single leg
+
+            @param leg id of the leg
+            @param q joint angles for the leg
+            @param frame_out computed pose
+
+            @return status of the computation; failed if < 0
+        **/
         int joint_to_cartesian(
             size_t leg,
             const KDL::JntArray& q,
@@ -111,6 +166,15 @@ namespace multipod_ik {
             return _fk_solvers[leg]->JntToCart(q, frame_out);
         }
 
+        /** Give leg tip poses when joint angles are all 0.
+
+            @param frames_out leg poses
+            @param stop_on_failure if true, the function will return as soon as
+                the inverse kinematic computation fails for one leg (we walk
+                through them in ascending leg number).
+
+            @return status of the computation of each leg; failed if < 0
+        **/
         std::array<int, NLegs> neutral_poses(
             std::array<KDL::Frame, NLegs>& frames_out,
             bool stop_on_failure)
@@ -126,6 +190,16 @@ namespace multipod_ik {
             return joint_to_cartesian(q, frames_out, stop_on_failure);
         }
 
+        /** Give leg tip poses when joint angles are all 0.
+
+            @see neutral_poses(std::array<KDL::Frame, NLegs>& frames_out,
+                bool stop_on_failure); this one is for a single leg
+
+            @param leg id of the leg
+            @param frame_out leg pose
+
+            @return status of the computation of each leg; failed if < 0
+        **/
         int neutral_pose(
             size_t leg,
             KDL::Frame& frame_out)
