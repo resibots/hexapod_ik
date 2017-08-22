@@ -6,7 +6,7 @@
 // for the URDF files needed to run these tests.
 //******************************************************************************
 
-// Track_ik and KDL
+// Trac_ik and KDL
 #include <trac_ik/trac_ik.hpp>
 #include <kdl/frames.hpp>
 #include <kdl/frames_io.hpp>

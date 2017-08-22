@@ -35,7 +35,7 @@ namespace multipod_ik {
                 extremity of each leg
             @param timeout the amout of time allowed for the inverse kinematics
                 to run
-            @param eps see the documentation of Track_IK
+            @param eps see the documentation of Trac_IK
         **/
         MultipodInverseKinematics(
             std::string chain_start,

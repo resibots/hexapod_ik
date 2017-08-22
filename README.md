@@ -7,7 +7,7 @@
 
 ## Dependencies
 
-- [track_ik]: Hardware interface for ros_control and the Dynamixels actuators
+- [trac_ik]: Hardware interface for ros_control and the Dynamixels actuators
 - orocos_kdl: kinematics and dynamics library (provided with ROS)
 
 ## Documentation
@@ -26,4 +26,4 @@ See [`hexapod_description`](https://github.com/resibots/hexapod_ros/tree/master/
 
 [CeCILL]: http://www.cecill.info/index.en.html
 [hexapods]: http://www.resibots.eu/photos.html#robots
-[dynamixel_control_hw]: https://github.com/resibots/dynamixel_control_hw
+[trac_ik]: https://bitbucket.org/traclabs/trac_ik
