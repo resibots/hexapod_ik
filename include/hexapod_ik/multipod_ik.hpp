@@ -31,7 +31,13 @@ namespace multipod_ik {
             double timeout,
             double eps)
         {
-            init(chain_start, chain_ends, urdf, timeout, eps);
+            // Construct the objects doing inverse kinematic computations
+            for (size_t leg = 0; leg < NLegs; ++leg) {
+                // This constructor parses the URDF loaded in rosparm urdf_param into the
+                // needed KDL structures.
+                _tracik_solvers[leg] = std::make_shared<TRAC_IK::TRAC_IK>(
+                    urdf, chain_start, chain_ends[leg], timeout, eps);
+            }
 
             // Set rotational bounds to max, so that the kinematic ignores the rotation
             // part of the target pose
@@ -42,20 +48,6 @@ namespace multipod_ik {
         }
         // ~MultipodInverseKinematics();
 
-        void init(
-            std::string chain_start,
-            std::array<std::string, NLegs> chain_ends,
-            std::string urdf,
-            double timeout,
-            double eps)
-        {
-            for (size_t leg = 0; leg < NLegs; ++leg) {
-                // This constructor parses the URDF loaded in rosparm urdf_param into the
-                // needed KDL structures.
-                _tracik_solvers[leg] = std::make_shared<TRAC_IK::TRAC_IK>(
-                    urdf, chain_start, chain_ends[leg], timeout, eps);
-            }
-        }
 
         std::array<int, NLegs> cartesian_to_joint(
             const std::array<KDL::JntArray, NLegs>& q_init,
