@@ -57,20 +57,6 @@ target_link_libraries(multipod_test
   ${orocos_kdl_LIBRARIES}
 )
 
-add_library(multipod_ik src/multipod_ik.cpp)
-target_link_libraries(multipod_ik
-  ${catkin_LIBRARIES}
-  ${orocos_kdl_LIBRARIES}
-  ${trac_ik_LIBRARIES}
-)
-add_dependencies(multipod_ik ${catkin_EXPORTED_TARGETS})
-
-install(TARGETS multipod_ik
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
