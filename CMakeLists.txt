@@ -34,23 +34,17 @@ include_directories(
   ${HexapodController_INCLUDE_DIRS}
 )
 
-add_executable(hexapod_ik src/trac_ik_test.cpp)
-target_link_libraries(hexapod_ik
-  ${catkin_LIBRARIES}
-  ${orocos_kdl_LIBRARIES}
-)
-
-install(TARGETS hexapod_ik
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
 add_executable(multipod_test src/multipod_ik_test.cpp)
 target_link_libraries(multipod_test
   ${catkin_LIBRARIES}
   ${orocos_kdl_LIBRARIES}
 )
+
+# install(TARGETS hexapod_ik
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})

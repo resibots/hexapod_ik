@@ -1,37 +1,17 @@
-/********************************************************************************
-Copyright (c) 2016, TRACLabs, Inc.
-All rights reserved.
+//******************************************************************************
+// Test program for multipod inverse kinematics
+//
+// The test code is meant to be used with our hexaforce robot. See
+// https://github.com/resibots/hexapod_ros/tree/master/hexapod_description
+// for the URDF files needed to run these tests.
+//******************************************************************************
 
-Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
-
-    1. Redistributions of source code must retain the above copyright notice,
-       this list of conditions and the following disclaimer.
-
-    2. Redistributions in binary form must reproduce the above copyright notice,
-       this list of conditions and the following disclaimer in the documentation
-       and/or other materials provided with the distribution.
-
-    3. Neither the name of the copyright holder nor the names of its contributors
-       may be used to endorse or promote products derived from this software
-       without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
-********************************************************************************/
-
-#include <boost/date_time.hpp>
+// Track_ik and KDL
 #include <trac_ik/trac_ik.hpp>
-#include <kdl/chainiksolverpos_nr_jl.hpp>
+#include <kdl/frames.hpp>
+#include <kdl/frames_io.hpp>
 
+// ROS
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <sensor_msgs/JointState.h>
@@ -40,21 +20,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf/transform_broadcaster.h>
 
 // Generate a trajectory
-#include <kdl/trajectory_composite.hpp>
-#include <kdl/rotational_interpolation_sa.hpp>
-#include <kdl/path_line.hpp>
-#include <kdl/velocityprofile_trap.hpp>
-#include <kdl/trajectory_segment.hpp>
 #include <hexapod_ik/multipod_ik.hpp>
 
 // Former, hexapod-specific, trajectory generation
 #include <hexapod_controller/hexapod_controller_cartesian.hpp>
 
-// for round()
-#include <cmath>
-
-// for stringstream
-#include <sstream>
+#include <cmath> // for round()
+#include <sstream> // stringstream
 
 std::ostream& operator<<(std::ostream& in, const KDL::JntArray& jnt)
 {
@@ -83,7 +55,7 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
         {{0.03, 0.03, 0.03}},
         {{0.03, 0.03, 0.03}},
         {{0.03, 0.03, 0.03}}}};
-    // std::vector<double> control_params = {{1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0.5, 0.5, 0.25, 0.75, 0.5, 1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5, 1, 0.5, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5}};
+
     static std::vector<double> control_params = {{1, 0, 0.5,
         0, 0.25, 0.5,
         0.7, 0.25, 0.5,

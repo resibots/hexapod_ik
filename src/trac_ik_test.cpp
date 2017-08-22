@@ -28,45 +28,34 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************************/
 
-#include <boost/date_time.hpp>
+// Track_ik and KDL solver
 #include <trac_ik/trac_ik.hpp>
 #include <kdl/chainiksolverpos_nr_jl.hpp>
 
-#include <ros/ros.h>
-#include <ros/console.h>
-#include <sensor_msgs/JointState.h>
-#include <geometry_msgs/PointStamped.h>
-
-// Generate a trajectory
+// Generate a trajectory using KDL
 #include <kdl/trajectory_composite.hpp>
 #include <kdl/rotational_interpolation_sa.hpp>
 #include <kdl/path_line.hpp>
 #include <kdl/velocityprofile_trap.hpp>
 #include <kdl/trajectory_segment.hpp>
 
-// Former, hexapod-specific, trajectory generation
+// ROS
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <sensor_msgs/JointState.h>
+#include <geometry_msgs/PointStamped.h>
+
+// Hexapod-specific trajectory generation
 #include <hexapod_controller/hexapod_controller_cartesian.hpp>
 
-// for round()
-#include <cmath>
-
-// for stringstream
-#include <sstream>
+#include <cmath> // for round()
+#include <sstream> // stringstream
 
 double fRand(double min, double max)
 {
     double f = (double)rand() / RAND_MAX;
     return min + f * (max - min);
 }
-
-// std::ostream& operator<<(std::ostream& in, const KDL::Vector& vector)
-// {
-//     in << std::setw(10) << vector.x() << "\t";
-//     in << std::setw(10) << vector.y() << "\t";
-//     in << std::setw(10) << vector.z();
-//
-//     return in;
-// }
 
 std::ostream& operator<<(std::ostream& in, const KDL::JntArray& jnt)
 {
@@ -91,7 +80,6 @@ KDL::Frame joint_to_cartesian(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver, K
 {
 
     // Get the KDL chain from URDF
-    // FIXME: we should not need to construct a TRAC_IK object for this
     KDL::Chain chain;
     bool valid = tracik_solver->getKDLChain(chain);
 
@@ -116,7 +104,6 @@ KDL::Frame joint_to_cartesian(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver, K
 KDL::Frame neutral_pose(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
 {
     // Get the KDL chain from URDF
-    // FIXME: we should not need to construct a TRAC_IK object for this
     KDL::Chain chain;
     bool valid = tracik_solver->getKDLChain(chain);
     //
@@ -150,9 +137,10 @@ bool test_fk(std::shared_ptr<TRAC_IK::TRAC_IK> tracik_solver)
     return (frame.p == end_effector_pose);
 }
 
-void test_ik(double num_samples, std::string chain_start, std::string chain_end, double timeout, std::string xml_string)
+void test_ik(
+    double num_samples, std::string chain_start, std::string chain_end,
+    double timeout, std::string xml_string)
 {
-
     double eps = 1e-5;
 
     // This constructor parses the URDF loaded in rosparm urdf_param into the
@@ -256,7 +244,10 @@ void test_ik(double num_samples, std::string chain_start, std::string chain_end,
             ROS_INFO_STREAM_THROTTLE(1, int((i) / num_samples * 100) << "\% done");
     }
 
-    ROS_INFO_STREAM("TRAC-IK found " << success << " solutions (" << 100.0 * success / num_samples << "\%) with an average of " << total_time / num_samples << " secs per sample");
+    ROS_INFO_STREAM("TRAC-IK found "
+        << success << " solutions (" << 100.0 * success / num_samples
+        << "\%) with an average of " << total_time / num_samples
+        << " secs per sample");
 }
 
 std::vector<KDL::Frame> generate_cartesian_traj(const double t)
@@ -267,7 +258,7 @@ std::vector<KDL::Frame> generate_cartesian_traj(const double t)
         {{0.03, 0.03, 0.03}},
         {{0.03, 0.03, 0.03}},
         {{0.03, 0.03, 0.03}}}};
-    // std::vector<double> control_params = {{1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0.5, 0.5, 0.25, 0.75, 0.5, 1, 0, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5, 1, 0.5, 0.5, 0.25, 0.25, 0.5, 1, 0, 0.5, 0.25, 0.75, 0.5}};
+
     static std::vector<double> control_params = {{1, 0, 0.5,
         0, 0.25, 0.5,
         0.7, 0.25, 0.5,
