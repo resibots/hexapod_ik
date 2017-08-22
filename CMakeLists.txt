@@ -13,7 +13,6 @@ find_package(catkin REQUIRED
     tf
 )
 
-find_package(Boost REQUIRED COMPONENTS date_time)
 find_package(orocos_kdl REQUIRED)
 
 find_package(HexapodController REQUIRED) # COMPONENTS hexapod_controller_simple)
@@ -23,7 +22,6 @@ catkin_package(
     trac_ik_lib
     tf
   DEPENDS
-    Boost
     orocos_kdl
   INCLUDE_DIRS
     include
@@ -32,7 +30,6 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
   ${orocos_kdl_INCLUDE_DIRS}
   ${HexapodController_INCLUDE_DIRS}
 )
@@ -40,7 +37,6 @@ include_directories(
 add_executable(hexapod_ik src/trac_ik_test.cpp)
 target_link_libraries(hexapod_ik
   ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
   ${orocos_kdl_LIBRARIES}
 )
 
@@ -53,7 +49,6 @@ install(TARGETS hexapod_ik
 add_executable(multipod_test src/multipod_ik_test.cpp)
 target_link_libraries(multipod_test
   ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
   ${orocos_kdl_LIBRARIES}
 )
 
