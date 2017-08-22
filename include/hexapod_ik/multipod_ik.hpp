@@ -78,7 +78,7 @@ namespace multipod_ik {
         std::array<int, NLegs> joint_to_cartesian(
             const std::array<KDL::JntArray, NLegs>& q,
             std::array<KDL::Frame, NLegs>& frames_out,
-            bool stop_on_failure)
+            bool stop_on_failure = false)
         {
             std::array<int, NLegs> status(-1);
 
