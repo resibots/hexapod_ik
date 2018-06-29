@@ -1,5 +1,5 @@
 # hexapod_ik
-(ROS-ready) library to use inverse kinematics on our [hexapods].
+(ROS-ready) library to use inverse kinematics on our [hexapods]. This library is used in [hexapod_driver].
 
 ## Authors
 
@@ -26,4 +26,5 @@ See [`hexapod_description`](https://github.com/resibots/hexapod_ros/tree/master/
 
 [CeCILL]: http://www.cecill.info/index.en.html
 [hexapods]: http://www.resibots.eu/photos.html#robots
+[hexapod_driver]: https://github.com/resibots/hexapod_ros/tree/master/hexapod_driver
 [trac_ik]: https://bitbucket.org/traclabs/trac_ik
